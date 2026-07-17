@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JT Trades — Trading Calendar</title>
+<style>
+  :root{
+    --bg:#151515;
+    --surface:#1e1e1e;
+    --surface-2:#262626;
+    --border:rgba(255,255,255,0.07);
+    --border-strong:rgba(255,255,255,0.13);
+    --text:#ededed;
+    --muted:#828282;
+    --dim:#555;
+    --green:#4cc98a;
+    --green-dim:rgba(76,201,138,0.11);
+    --green-line:rgba(76,201,138,0.28);
+    --red:#f0616b;
+    --red-dim:rgba(240,97,107,0.11);
+    --red-line:rgba(240,97,107,0.26);
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--sans);
+    background:
+      radial-gradient(900px 420px at 78% -8%, rgba(76,201,138,0.10), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    padding:28px 20px 60px;
+  }
+  .wrap{max-width:940px;margin:0 auto}
+
+  /* Brand */
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+  .mark{
+    width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+    background:var(--green-dim);border:1px solid var(--green-line);
+    color:var(--green);font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:-0.02em;
+  }
+  .brandname{font-size:15px;font-weight:650;letter-spacing:-0.01em}
+
+  /* Header */
+  .top{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    gap:20px;flex-wrap:wrap;margin-bottom:18px;
+  }
+  .titleblock{display:flex;flex-direction:column;gap:12px}
+  .nav{display:flex;align-items:center;gap:10px}
+  .month{font-size:24px;font-weight:650;letter-spacing:-0.02em;min-width:190px}
+  .month .yr{color:var(--muted);font-weight:500}
+  .iconbtn{
+    width:30px;height:30px;display:grid;place-items:center;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;color:var(--muted);cursor:pointer;font-size:15px;transition:.14s;
+  }
+  .iconbtn:hover{background:var(--surface-2);color:var(--text);border-color:var(--border-strong)}
+  .today-btn{
+    height:30px;padding:0 12px;background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;color:var(--muted);cursor:pointer;font-size:12.5px;font-weight:500;transition:.14s;
+  }
+  .today-btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--border-strong)}
+
+  .stats{display:flex;gap:22px;padding-left:2px}
+  .stat{display:flex;flex-direction:column;gap:3px}
+  .stat .lbl{font-size:11px;color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+  .stat .val{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:-0.01em}
+  .val.pos{color:var(--green)} .val.neg{color:var(--red)} .val.neu{color:var(--text)}
+  .val.hidden{color:var(--muted);letter-spacing:2px}
+  .valrow{display:flex;align-items:center;gap:8px}
+  .eye{
+    display:grid;place-items:center;width:22px;height:22px;padding:0;
+    background:transparent;border:none;color:var(--dim);cursor:pointer;transition:.14s;
+  }
+  .eye:hover{color:var(--text)}
+  .eye:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
+
+  /* Streak counter */
+  .counter{
+    display:flex;align-items:center;gap:14px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:13px 18px 13px 15px;
+  }
+  .ring{position:relative;width:46px;height:46px;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{
+    position:absolute;inset:0;display:grid;place-items:center;
+    font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green);
+  }
+  .counter .meta{display:flex;flex-direction:column;gap:2px;line-height:1.2}
+  .counter .clabel{font-size:11px;color:var(--dim);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+  .counter .track{display:flex;align-items:baseline;gap:2px;font-family:var(--mono)}
+  .counter .cur{font-size:19px;font-weight:600}
+  .counter .slash{color:var(--dim);font-size:15px}
+  .counter .tgt{
+    width:34px;background:transparent;border:none;outline:none;
+    font-family:var(--mono);font-size:19px;font-weight:600;color:var(--green);
+    border-bottom:1px dashed transparent;padding:0 1px;
+  }
+  .counter .tgt:hover{border-bottom-color:var(--green-line)}
+  .counter .tgt:focus{border-bottom-color:var(--green)}
+  .counter .unit{font-size:11px;color:var(--muted);align-self:center;margin-left:3px}
+  .counter.done .clabel{color:var(--green)}
+  .counter.broke .clabel{color:var(--red)}
+
+  /* Weekday header */
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px;padding:0 2px}
+  .dow span{font-size:11px;color:var(--dim);text-align:left;padding-left:3px;letter-spacing:.05em;text-transform:uppercase}
+
+  /* Grid */
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .cell{
+    position:relative;min-height:92px;border-radius:10px;
+    background:var(--surface);border:1px solid var(--border);
+    padding:8px 9px;cursor:pointer;transition:.14s;overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  .cell:hover{border-color:var(--border-strong);background:var(--surface-2)}
+  .cell:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+  .cell.pad{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+  .cell.pos{background:var(--green-dim);border-color:var(--green-line)}
+  .cell.neg{background:var(--red-dim);border-color:var(--red-line)}
+  .cell.today{box-shadow:inset 0 0 0 1.5px var(--green)}
+  .cell .date{font-size:12.5px;color:var(--muted);font-weight:500}
+  .cell.today .date{color:var(--green);font-weight:650}
+  .cell .body{margin-top:auto;display:flex;flex-direction:column;gap:2px}
+  .cell .amt{font-family:var(--mono);font-size:15px;font-weight:650;letter-spacing:-0.02em}
+  .cell.pos .amt{color:var(--green)} .cell.neg .amt{color:var(--red)}
+  .cell .amt.zero{color:var(--muted)}
+  .cell .trd{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+  /* Modals */
+  .backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,0.55);
+    display:none;align-items:center;justify-content:center;padding:20px;z-index:20;
+  }
+  .backdrop.open{display:flex}
+  #confirmBackdrop{z-index:30;background:rgba(0,0,0,0.62)}
+  .modal{
+    width:100%;max-width:320px;background:#1c1c1c;border:1px solid var(--border-strong);
+    border-radius:16px;padding:20px;
+  }
+  .modal h3{font-size:15px;font-weight:600;margin-bottom:16px;letter-spacing:-0.01em}
+  .modal.confirm h3{margin-bottom:8px}
+  .modal .sub{font-size:12.5px;color:var(--muted);margin-bottom:18px;line-height:1.45}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.03em;text-transform:uppercase}
+  .field input, .field select{
+    width:100%;background:#141414;border:1px solid var(--border);border-radius:9px;
+    padding:10px 12px;color:var(--text);font-size:15px;outline:none;transition:.14s;
+  }
+  .field input{font-family:var(--mono)}
+  .field input:focus, .field select:focus{border-color:var(--green);background:#101010}
+  .field select{
+    font-family:var(--sans);font-size:14px;cursor:pointer;appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23828282' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 12px center;
+  }
+  .field select.invalid{border-color:var(--red)}
+  .actions{display:flex;gap:9px;margin-top:20px}
+  .btn{
+    flex:1;padding:10px;border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer;
+    border:1px solid transparent;transition:.14s;font-family:var(--sans);
+  }
+  .btn.save{background:var(--green);color:#0c1f16;border-color:var(--green)}
+  .btn.save:hover{filter:brightness(1.08)}
+  .btn.clear{background:transparent;color:var(--muted);border-color:var(--border)}
+  .btn.clear:hover{color:var(--red);border-color:var(--red-line)}
+
+  /* Toast */
+  .toast{
+    position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(10px);
+    background:#242424;border:1px solid var(--border-strong);color:var(--text);
+    padding:10px 16px;border-radius:10px;font-size:13px;font-family:var(--mono);
+    opacity:0;transition:.25s;z-index:40;pointer-events:none;white-space:nowrap;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.up{color:var(--green);border-color:var(--green-line)}
+  .toast.reset{color:var(--red);border-color:var(--red-line)}
+
+  @media (max-width:560px){
+    body{padding:20px 12px 50px}
+    .cell{min-height:74px;padding:6px 7px;border-radius:9px}
+    .cell .amt{font-size:13px}
+    .month{font-size:21px;min-width:0}
+    .stats{gap:16px}
+    .grid,.dow{gap:6px}
+    .counter{padding:10px 14px 10px 12px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <span class="mark">JT</span>
+    <span class="brandname">JT Trades</span>
+  </div>
+  <div class="top">
+    <div class="titleblock">
+      <div class="nav">
+        <button class="iconbtn" id="prev" aria-label="Previous month">&#8249;</button>
+        <button class="iconbtn" id="next" aria-label="Next month">&#8250;</button>
+        <div class="month" id="monthLabel">—</div>
+        <button class="today-btn" id="todayBtn">Today</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="lbl">Net P&amp;L</span><span class="valrow"><span class="val hidden" id="netVal">*****</span><button class="eye" id="eyeBtn" aria-label="Show or hide Net P&amp;L"></button></span></div>
+        <div class="stat"><span class="lbl">Days</span><span class="val neu" id="daysVal">0</span></div>
+        <div class="stat"><span class="lbl">Trades</span><span class="val neu" id="tradesVal">0</span></div>
+      </div>
+    </div>
+
+    <div class="counter" id="counter">
+      <div class="ring">
+        <svg width="46" height="46" viewBox="0 0 46 46">
+          <circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+          <circle id="ringFill" cx="23" cy="23" r="19" fill="none" stroke="var(--green)" stroke-width="4" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="119.4"/>
+        </svg>
+        <div class="pct" id="ringPct">0%</div>
+      </div>
+      <div class="meta">
+        <span class="clabel" id="cLabel">Strategy streak</span>
+        <div class="track">
+          <span class="cur" id="curDays">0</span>
+          <span class="slash">/</span>
+          <input class="tgt" id="tgtInput" type="number" min="1" max="99" value="5" aria-label="Target streak">
+          <span class="unit">days</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dow">
+    <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- Edit day -->
+<div class="backdrop" id="backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <h3 id="mTitle">Edit day</h3>
+    <div class="field">
+      <label for="mAmount">Amount ($)</label>
+      <input id="mAmount" type="number" step="any" inputmode="decimal" placeholder="e.g. 1250 or -400">
+    </div>
+    <div class="field">
+      <label for="mTrades">Trades taken</label>
+      <input id="mTrades" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 3">
+    </div>
+    <div class="field">
+      <label for="mStrat">Did you use your strategy?</label>
+      <select id="mStrat">
+        <option value="" disabled selected>Select…</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn clear" id="mClear">Clear</button>
+      <button class="btn save" id="mSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Honesty confirm -->
+<div class="backdrop" id="confirmBackdrop">
+  <div class="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="cTitle">
+    <h3 id="cTitle">Did you REALLY stick with your strategy?</h3>
+    <div class="actions">
+      <button class="btn clear" id="cNo">No, I didn't</button>
+      <button class="btn save" id="cYes">Yes, I did</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var mem={};
+  var store={
+    get:async function(k){ try{ if(window.storage){ var r=await window.storage.get(k); return r?r.value:null; } }catch(e){} return (k in mem)?mem[k]:null; },
+    set:async function(k,v){ try{ if(window.storage){ await window.storage.set(k,v); return; } }catch(e){} mem[k]=v; }
+  };
+
+  var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var DOW=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var entries={};      // "YYYY-MM-DD" -> {amount, trades, strategy:true/false}
+  var target=5;
+  var view=new Date(); view.setDate(1);
+  var selectedKey=null;
+  var pendingAmount=0, pendingTrades=0;
+  var hideNet=true;
+
+  var EYE_OPEN='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE_OFF='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  function updateEye(){ el("eyeBtn").innerHTML = hideNet ? EYE_OFF : EYE_OPEN; }
+
+  var el=function(id){return document.getElementById(id);};
+  function key(y,m,d){ return y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0"); }
+  function todayKey(){ var t=new Date(); return key(t.getFullYear(),t.getMonth(),t.getDate()); }
+
+  function fmtMoney(n){
+    var sign=n>0?"+":(n<0?"-":"");
+    var abs=Math.abs(n), r=Math.round(abs*100)/100;
+    var str=Number.isInteger(r)?r.toLocaleString("en-US"):r.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+    return sign+"$"+str;
+  }
+
+  // strategy streak = run of strategy-adherent entries ending at the latest logged day
+  function computeStreak(){
+    var keys=Object.keys(entries).sort();
+    var s=0, lastBroke=false;
+    for(var i=0;i<keys.length;i++){
+      var e=entries[keys[i]];
+      if(e.strategy===false){ s=0; lastBroke=true; }
+      else { s+=1; lastBroke=false; }
+    }
+    return {streak:s, broke:lastBroke};
+  }
+
+  function render(){
+    var y=view.getFullYear(), m=view.getMonth();
+    el("monthLabel").innerHTML=MONTHS[m]+' <span class="yr">'+y+'</span>';
+
+    var first=new Date(y,m,1).getDay();
+    var days=new Date(y,m+1,0).getDate();
+    var grid=el("grid"); grid.innerHTML="";
+    var net=0, tradingDays=0, totalTrades=0, tk=todayKey();
+
+    for(var i=0;i<first;i++){ var p=document.createElement("div"); p.className="cell pad"; grid.appendChild(p); }
+
+    for(var d=1;d<=days;d++){
+      var k=key(y,m,d), e=entries[k];
+      var cell=document.createElement("div");
+      cell.className="cell"; cell.tabIndex=0; cell.setAttribute("role","button"); cell.dataset.key=k;
+      var cls="";
+      if(e){
+        if(e.amount>0) cls="pos"; else if(e.amount<0) cls="neg";
+        net+=e.amount;
+        if((e.trades||0)>0||e.amount!==0) tradingDays++;
+        totalTrades+=(e.trades||0);
+      }
+      if(cls) cell.classList.add(cls);
+      if(k===tk) cell.classList.add("today");
+      var html='<span class="date">'+d+'</span>';
+      if(e){
+        var amtClass=e.amount!==0?"amt":"amt zero";
+        html+='<div class="body"><span class="'+amtClass+'">'+fmtMoney(e.amount)+'</span>';
+        if((e.trades||0)>0) html+='<span class="trd">'+e.trades+(e.trades===1?" trade":" trades")+'</span>';
+        html+='</div>';
+      }
+      cell.innerHTML=html;
+      cell.setAttribute("aria-label", MONTHS[m]+" "+d+(e?", "+fmtMoney(e.amount)+", "+(e.trades||0)+" trades":", no entry"));
+      grid.appendChild(cell);
+    }
+
+    var netEl=el("netVal");
+    if(hideNet){ netEl.textContent="*****"; netEl.className="val hidden"; }
+    else { netEl.textContent=fmtMoney(net); netEl.className="val "+(net>0?"pos":(net<0?"neg":"neu")); }
+    el("daysVal").textContent=tradingDays;
+    el("tradesVal").textContent=totalTrades;
+
+    var cs=computeStreak(), cur=cs.streak;
+    el("curDays").textContent=cur;
+    var pct=target>0?Math.min(cur/target,1):0, C=2*Math.PI*19;
+    el("ringFill").setAttribute("stroke-dashoffset",(C*(1-pct)).toFixed(1));
+    el("ringPct").textContent=Math.round(pct*100)+"%";
+    var cEl=el("counter");
+    cEl.classList.toggle("done", cur>=target&&target>0);
+    cEl.classList.toggle("broke", cur===0&&cs.broke);
+    el("cLabel").textContent=(cur>=target&&target>0)?"Target met":(cur===0&&cs.broke?"Streak broken":"Strategy streak");
+  }
+
+  // ---- toast ----
+  var toastTimer=null;
+  function toast(msg, kind){
+    var t=el("toast");
+    t.textContent=msg;
+    t.className="toast show"+(kind?" "+kind:"");
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(function(){ t.className="toast"; },2200);
+  }
+
+  // ---- edit modal ----
+  function openModal(k){
+    selectedKey=k;
+    var p=k.split("-"), dt=new Date(+p[0],+p[1]-1,+p[2]);
+    el("mTitle").textContent=DOW[dt.getDay()]+", "+MONTHS[dt.getMonth()]+" "+dt.getDate();
+    var e=entries[k];
+    el("mAmount").value=e&&e.amount!==undefined?e.amount:"";
+    el("mTrades").value=e&&e.trades!==undefined?e.trades:"";
+    var sel=el("mStrat");
+    sel.classList.remove("invalid");
+    sel.value = e? (e.strategy===false?"no":(e.strategy===true?"yes":"")) : "";
+    el("mClear").style.visibility=e?"visible":"hidden";
+    el("backdrop").classList.add("open");
+    setTimeout(function(){ el("mAmount").focus(); },30);
+  }
+  function closeModal(){ el("backdrop").classList.remove("open"); }
+  function openConfirm(){ el("confirmBackdrop").classList.add("open"); setTimeout(function(){ el("cYes").focus(); },30); }
+  function closeConfirm(){ el("confirmBackdrop").classList.remove("open"); }
+
+  async function persist(){ await store.set("entries", JSON.stringify(entries)); }
+
+  async function finalize(adherent){
+    entries[selectedKey]={amount:pendingAmount, trades:pendingTrades, strategy:adherent};
+    await persist();
+    closeConfirm(); closeModal();
+    render();
+    var cs=computeStreak();
+    if(adherent) toast("Strategy streak: "+cs.streak, "up");
+    else toast("Strategy broken \u2014 streak reset", "reset");
+    selectedKey=null;
+  }
+
+  function onSave(){
+    if(!selectedKey) return;
+    var amtRaw=el("mAmount").value.trim(), trdRaw=el("mTrades").value.trim();
+    if(amtRaw===""&&trdRaw===""){ // clear the day
+      delete entries[selectedKey];
+      persist().then(function(){ closeModal(); render(); selectedKey=null; });
+      return;
+    }
+    var strat=el("mStrat").value;
+    if(strat!=="yes"&&strat!=="no"){ el("mStrat").classList.add("invalid"); el("mStrat").focus(); return; }
+    pendingAmount=amtRaw===""?0:(parseFloat(amtRaw)||0);
+    pendingTrades=trdRaw===""?0:Math.max(0,parseInt(trdRaw,10)||0);
+    if(strat==="no"){ finalize(false); }
+    else { closeModal(); openConfirm(); }
+  }
+  async function clearEntry(){
+    if(selectedKey){ delete entries[selectedKey]; await persist(); }
+    closeModal(); render(); selectedKey=null;
+  }
+
+  // ---- events ----
+  el("grid").addEventListener("click",function(ev){
+    var c=ev.target.closest(".cell"); if(!c||c.classList.contains("pad"))return; openModal(c.dataset.key);
+  });
+  el("grid").addEventListener("keydown",function(ev){
+    if(ev.key==="Enter"||ev.key===" "){ var c=ev.target.closest(".cell"); if(!c||c.classList.contains("pad"))return; ev.preventDefault(); openModal(c.dataset.key); }
+  });
+  el("mStrat").addEventListener("change",function(){ this.classList.remove("invalid"); });
+  el("prev").onclick=function(){ view.setMonth(view.getMonth()-1); render(); };
+  el("next").onclick=function(){ view.setMonth(view.getMonth()+1); render(); };
+  el("todayBtn").onclick=function(){ view=new Date(); view.setDate(1); render(); };
+  el("eyeBtn").onclick=async function(){ hideNet=!hideNet; await store.set("hideNet", hideNet?"1":"0"); updateEye(); render(); };
+  el("mSave").onclick=onSave;
+  el("mClear").onclick=clearEntry;
+  el("cYes").onclick=function(){ finalize(true); };
+  el("cNo").onclick=function(){ finalize(false); };
+  el("backdrop").addEventListener("click",function(ev){ if(ev.target===el("backdrop")) closeModal(); });
+  el("confirmBackdrop").addEventListener("click",function(ev){ if(ev.target===el("confirmBackdrop")) closeConfirm(); });
+  document.addEventListener("keydown",function(ev){
+    if(ev.key!=="Escape") return;
+    if(el("confirmBackdrop").classList.contains("open")) closeConfirm();
+    else if(el("backdrop").classList.contains("open")) closeModal();
+  });
+  el("tgtInput").addEventListener("change",async function(){
+    var v=parseInt(this.value,10); target=(isNaN(v)||v<1)?1:Math.min(v,99); this.value=target;
+    await store.set("target",String(target)); render();
+  });
+
+  // ---- init ----
+  (async function(){
+    var raw=await store.get("entries");
+    if(raw){ try{ entries=JSON.parse(raw)||{}; }catch(e){ entries={}; } }
+    var t=await store.get("target");
+    if(t){ var tv=parseInt(t,10); if(!isNaN(tv)) target=tv; }
+    el("tgtInput").value=target;
+    var hn=await store.get("hideNet");
+    if(hn!==null) hideNet=(hn==="1");
+    updateEye();
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
