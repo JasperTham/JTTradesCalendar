@@ -47,8 +47,8 @@
   .navitem.active{background:var(--green-dim);border-color:var(--green-line);color:var(--green)}
   .navitem svg{width:16px;height:16px;flex:none}
 
-  .main{flex:1;min-width:0;padding:28px 26px 60px;max-width:1040px}
-  .page{display:none}
+  .main{flex:1;min-width:0;padding:28px 26px 60px}
+  .page{display:none;max-width:1040px;margin:0 auto}
   .page.active{display:block}
 
   /* Calendar header */
@@ -130,8 +130,39 @@
   .legend .li{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);font-weight:500}
   .legend .dot{width:9px;height:9px;border-radius:50%}
   .legend .dot.g{background:var(--green)} .legend .dot.r{background:var(--red)}
+  .chartwrap{position:relative}
   .chartwrap svg{width:100%;height:auto;display:block}
+  .eq-tip{position:absolute;pointer-events:none;background:#111;border:1px solid var(--border-strong);border-radius:8px;padding:6px 10px;transform:translate(-50%,-128%);white-space:nowrap;opacity:0;transition:opacity .1s;z-index:5;font-family:var(--mono)}
+  .eq-tip.show{opacity:1}
+  .eq-tip .tv{font-size:14px;font-weight:700;color:var(--text);line-height:1.2}
+  .eq-tip .td{font-size:11px;color:var(--muted);margin-top:2px}
   .eq-empty{padding:54px 20px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.5}
+
+  /* Payouts page */
+  .payout-summary{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:18px}
+  .psum{display:flex;flex-direction:column;gap:4px}
+  .psum .lbl{font-size:11px;color:var(--dim);letter-spacing:.05em;text-transform:uppercase}
+  .psum .v{font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:-0.01em}
+  .psum .v.pos{color:var(--green)} .psum .v.neg{color:var(--red)} .psum .v.neu{color:var(--text)}
+  .addbtn{padding:10px 15px;border-radius:10px;background:var(--green-dim);border:1px solid var(--green-line);color:var(--green);font-size:13.5px;font-weight:600;cursor:pointer;transition:.14s;font-family:var(--sans);margin-bottom:14px}
+  .addbtn:hover{background:rgba(76,201,138,0.16)}
+  .payout-form{display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;gap:14px;align-items:flex-end;flex-wrap:wrap}
+  .payout-form.open{display:flex}
+  .payout-form .inp{display:flex;align-items:center;background:#141414;border:1px solid var(--border);border-radius:9px;padding:9px 12px;transition:.14s}
+  .payout-form .inp:focus-within{border-color:var(--green)}
+  .payout-form .inp .cur{color:var(--muted);font-family:var(--mono);font-size:14px;margin-right:1px}
+  .payout-form input{background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:14px;font-weight:600}
+  .payout-form input[type=number]{width:110px}
+  .payout-form input[type=date]{width:150px;color-scheme:dark}
+  .pf-actions{display:flex;gap:9px;margin-left:auto}
+  .pf-actions .btn{flex:none;padding:9px 16px}
+  .payout-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:13px 16px;margin-bottom:8px}
+  .payout-row .pleft{display:flex;flex-direction:column;gap:3px}
+  .payout-row .pamt{font-family:var(--mono);font-size:17px;font-weight:650;color:var(--green)}
+  .payout-row .pdate{font-size:12px;color:var(--muted)}
+  .pdel{width:26px;height:26px;display:grid;place-items:center;background:transparent;border:none;color:var(--dim);cursor:pointer;border-radius:6px;transition:.14s;font-size:17px;line-height:1}
+  .pdel:hover{color:var(--red);background:var(--red-dim)}
+  .payout-empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:13.5px}
 
   /* Modals */
   .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
@@ -192,6 +223,10 @@
       <button class="navitem" data-page="equity">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/></svg>
         Equity Curve
+      </button>
+      <button class="navitem" data-page="payouts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>
+        Payouts
       </button>
     </nav>
   </aside>
@@ -255,6 +290,19 @@
         <div class="chartwrap" id="chartwrap"></div>
       </div>
     </section>
+
+    <!-- Payouts -->
+    <section id="page-payouts" class="page">
+      <div class="pagehead">Payouts</div>
+      <div class="payout-summary" id="payoutSummary"></div>
+      <button class="addbtn" id="addPayoutBtn">+ Add payout</button>
+      <div class="payout-form" id="payoutForm">
+        <div class="setting"><label for="poAmount">Payout amount</label><div class="inp"><span class="cur">$</span><input id="poAmount" type="number" step="any" inputmode="decimal" placeholder="500"></div></div>
+        <div class="setting"><label for="poDate">Date</label><div class="inp"><input id="poDate" type="date"></div></div>
+        <div class="pf-actions"><button class="btn clear" id="poCancel">Cancel</button><button class="btn save" id="poAdd">Add</button></div>
+      </div>
+      <div class="payout-list" id="payoutList"></div>
+    </section>
   </main>
 </div>
 
@@ -304,6 +352,7 @@
   var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var DOW=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   var entries={}, target=5;
+  var payouts=[];
   var view=new Date(); view.setDate(1);
   var selectedKey=null, pendingAmount=0, pendingTrades=0;
   var hideNet=true;
@@ -333,7 +382,11 @@
   }
 
   async function persist(){ await store.set("entries", JSON.stringify(entries)); }
-  function syncEquity(){ if(activePage==="equity") renderEquity(); }
+  async function persistPayouts(){ await store.set("payouts", JSON.stringify(payouts)); }
+  function pnlTotal(){ var s=0; for(var k in entries) s+=entries[k].amount||0; return s; }
+  function payoutTotal(){ var s=0; for(var i=0;i<payouts.length;i++) s+=payouts[i].amount||0; return s; }
+  function syncDerived(){ if(activePage==="equity") renderEquity(); else if(activePage==="payouts") renderPayouts(); }
+  function syncEquity(){ syncDerived(); }
 
   /* ---------- Calendar ---------- */
   function render(){
@@ -399,7 +452,7 @@
     var keys=Object.keys(entries).sort();
     var totalPnl=0, largestWin=0;
     for(var i=0;i<keys.length;i++){ var a=entries[keys[i]].amount||0; totalPnl+=a; if(a>largestWin) largestWin=a; }
-    var acct=startBalance+totalPnl, buffer=acct-maxLoss;
+    var acct=startBalance+totalPnl-payoutTotal(), buffer=acct-maxLoss;
     var tradingDays=keys.length;
     var cons = (totalPnl>0 && largestWin>0) ? (largestWin/totalPnl*100) : null;
 
@@ -417,12 +470,16 @@
 
     // chart
     var wrap=el("chartwrap");
-    if(keys.length===0){
+    var pnlByDate={}, payByDate={}, union={};
+    for(var a in entries){ pnlByDate[a]=(pnlByDate[a]||0)+(entries[a].amount||0); union[a]=1; }
+    for(var b=0;b<payouts.length;b++){ var pd=payouts[b].date; payByDate[pd]=(payByDate[pd]||0)+(payouts[b].amount||0); union[pd]=1; }
+    var allDates=Object.keys(union).sort();
+    if(allDates.length===0){
       wrap.innerHTML='<div class="eq-empty">No trades logged yet.<br>Add entries in the Consistency tab to build your equity curve.</div>';
       return;
     }
     var running=startBalance, series=[];
-    for(var j=0;j<keys.length;j++){ running+=entries[keys[j]].amount||0; series.push({t:parseKey(keys[j]).getTime(), v:running, k:keys[j]}); }
+    for(var j=0;j<allDates.length;j++){ var dd=allDates[j]; running+=(pnlByDate[dd]||0)-(payByDate[dd]||0); series.push({t:parseKey(dd).getTime(), v:running, k:dd}); }
 
     var W=1000, H=440, PAD_L=14, PAD_R=82, PAD_T=22, PAD_B=46;
     var plotW=W-PAD_L-PAD_R, plotH=H-PAD_T-PAD_B, bottomY=PAD_T+plotH;
@@ -473,8 +530,75 @@
       svg+='<circle cx="'+(PAD_L+plotW/2)+'" cy="'+Y(series[0].v).toFixed(1)+'" r="3.5" fill="#4cc98a"/>';
       svg+='<text x="'+(PAD_L+plotW/2)+'" y="'+(H-16)+'" fill="#828282" font-size="13" font-family="'+"ui-monospace,monospace"+'" text-anchor="middle">'+MON[dt0.getMonth()]+" "+dt0.getDate()+'</text>';
     }
+    svg+='<line id="eqCross" x1="0" y1="'+PAD_T+'" x2="0" y2="'+bottomY+'" stroke="rgba(255,255,255,0.28)" stroke-width="1" stroke-dasharray="4 4" style="visibility:hidden"/>';
+    svg+='<circle id="eqFocus" r="4.5" fill="#4cc98a" stroke="#151515" stroke-width="2" style="visibility:hidden"/>';
     svg+='</svg>';
-    wrap.innerHTML=svg;
+    wrap.innerHTML=svg+'<div class="eq-tip" id="eqTip"><div class="tv"></div><div class="td"></div></div>';
+
+    var hoverPoints;
+    if(series.length===1) hoverPoints=[{x:PAD_L+plotW/2, y:Y(series[0].v), v:series[0].v, k:series[0].k}];
+    else hoverPoints=series.map(function(s,i){ return {x:pts[i].x, y:pts[i].y, v:s.v, k:s.k}; });
+
+    var svgEl=wrap.querySelector("svg"), tip=el("eqTip");
+    var cross=svgEl.querySelector("#eqCross"), focus=svgEl.querySelector("#eqFocus");
+    var tv=tip.querySelector(".tv"), td=tip.querySelector(".td");
+    function eqMove(src){
+      var r=svgEl.getBoundingClientRect(); if(!r.width) return;
+      var vbX=(src.clientX-r.left)/r.width*W;
+      var best=hoverPoints[0], bd=Math.abs(vbX-best.x);
+      for(var i=1;i<hoverPoints.length;i++){ var d=Math.abs(vbX-hoverPoints[i].x); if(d<bd){bd=d;best=hoverPoints[i];} }
+      cross.setAttribute("x1",best.x); cross.setAttribute("x2",best.x); cross.style.visibility="visible";
+      focus.setAttribute("cx",best.x); focus.setAttribute("cy",best.y); focus.style.visibility="visible";
+      var wr=wrap.getBoundingClientRect();
+      tip.style.left=((r.left-wr.left)+best.x/W*r.width)+"px";
+      tip.style.top=((r.top-wr.top)+best.y/H*r.height)+"px";
+      var dt=parseKey(best.k);
+      tv.textContent=fmtBal(best.v);
+      td.textContent=MON[dt.getMonth()]+" "+dt.getDate()+", "+dt.getFullYear();
+      tip.classList.add("show");
+    }
+    function eqLeave(){ cross.style.visibility="hidden"; focus.style.visibility="hidden"; tip.classList.remove("show"); }
+    svgEl.addEventListener("mousemove",function(e){ eqMove(e); });
+    svgEl.addEventListener("mouseleave",eqLeave);
+    svgEl.addEventListener("touchstart",function(e){ if(e.touches[0]) eqMove(e.touches[0]); },{passive:true});
+    svgEl.addEventListener("touchmove",function(e){ if(e.touches[0]) eqMove(e.touches[0]); },{passive:true});
+  }
+
+  /* ---------- Payouts ---------- */
+  function renderPayouts(){
+    var total=payoutTotal(), acct=startBalance+pnlTotal()-total;
+    el("payoutSummary").innerHTML=
+      '<div class="psum"><span class="lbl">Total Withdrawn</span><span class="v neu">'+fmtBal(total)+'</span></div>'+
+      '<div class="psum"><span class="lbl">Payouts</span><span class="v neu">'+payouts.length+'</span></div>'+
+      '<div class="psum"><span class="lbl">Account Balance</span><span class="v '+(acct<maxLoss?'neg':'neu')+'">'+fmtBal(acct)+'</span></div>';
+    var list=el("payoutList");
+    if(payouts.length===0){ list.innerHTML='<div class="payout-empty">No payouts yet. Use \u201C+ Add payout\u201D to log one.</div>'; return; }
+    var sorted=payouts.slice().sort(function(x,y){ return x.date<y.date?1:(x.date>y.date?-1:0); });
+    list.innerHTML=sorted.map(function(p){
+      var dt=parseKey(p.date);
+      var dl=DOW[dt.getDay()].slice(0,3)+", "+MON[dt.getMonth()]+" "+dt.getDate()+", "+dt.getFullYear();
+      return '<div class="payout-row"><div class="pleft"><span class="pamt">'+fmtBal(p.amount)+'</span><span class="pdate">'+dl+'</span></div>'+
+        '<button class="pdel" data-id="'+p.id+'" aria-label="Delete payout">&#215;</button></div>';
+    }).join("");
+  }
+  function togglePayoutForm(show){
+    var f=el("payoutForm");
+    if(show){ el("poDate").value=todayKey(); el("poAmount").value=""; f.classList.add("open"); setTimeout(function(){ el("poAmount").focus(); },30); }
+    else f.classList.remove("open");
+  }
+  async function addPayout(){
+    var amt=parseFloat(String(el("poAmount").value).replace(/[$,+\s]/g,""));
+    if(isNaN(amt)||amt<=0){ el("poAmount").focus(); return; }
+    var date=el("poDate").value || todayKey();
+    payouts.push({id:"p"+Date.now()+Math.floor(Math.random()*1000), date:date, amount:amt});
+    await persistPayouts(); togglePayoutForm(false); renderPayouts();
+    if(activePage==="equity") renderEquity();
+    toast("Payout logged: "+fmtBal(amt), "up");
+  }
+  async function deletePayout(id){
+    payouts=payouts.filter(function(p){ return p.id!==id; });
+    await persistPayouts(); renderPayouts();
+    if(activePage==="equity") renderEquity();
   }
 
   /* ---------- Toast ---------- */
@@ -551,11 +675,10 @@
   /* ---------- Navigation ---------- */
   function switchPage(name){
     activePage=name;
-    var items=document.querySelectorAll(".navitem");
-    items.forEach(function(b){ b.classList.toggle("active", b.dataset.page===name); });
-    el("page-consistency").classList.toggle("active", name==="consistency");
-    el("page-equity").classList.toggle("active", name==="equity");
+    document.querySelectorAll(".navitem").forEach(function(b){ b.classList.toggle("active", b.dataset.page===name); });
+    ["consistency","equity","payouts"].forEach(function(p){ el("page-"+p).classList.toggle("active", p===name); });
     if(name==="equity") renderEquity();
+    if(name==="payouts") renderPayouts();
   }
 
   /* ---------- Events ---------- */
@@ -581,10 +704,16 @@
   el("tgtInput").addEventListener("change",async function(){ var v=parseInt(this.value,10); target=(isNaN(v)||v<1)?1:Math.min(v,99); this.value=target; await store.set("target",String(target)); render(); });
   el("startBal").addEventListener("change",async function(){ var v=parseFloat(this.value); if(isNaN(v))v=0; startBalance=v; this.value=v; await store.set("startBalance",String(v)); renderEquity(); });
   el("maxLoss").addEventListener("change",async function(){ var v=parseFloat(this.value); if(isNaN(v))v=0; maxLoss=v; this.value=v; await store.set("maxLoss",String(v)); renderEquity(); });
+  el("addPayoutBtn").onclick=function(){ togglePayoutForm(!el("payoutForm").classList.contains("open")); };
+  el("poCancel").onclick=function(){ togglePayoutForm(false); };
+  el("poAdd").onclick=addPayout;
+  el("poAmount").addEventListener("keydown",function(ev){ if(ev.key==="Enter") addPayout(); });
+  el("payoutList").addEventListener("click",function(ev){ var b=ev.target.closest(".pdel"); if(b) deletePayout(b.dataset.id); });
 
   /* ---------- Init ---------- */
   (async function(){
     var raw=await store.get("entries"); if(raw){ try{ entries=JSON.parse(raw)||{}; }catch(e){ entries={}; } }
+    var pr=await store.get("payouts"); if(pr){ try{ payouts=JSON.parse(pr)||[]; }catch(e){ payouts=[]; } }
     var t=await store.get("target"); if(t){ var tv=parseInt(t,10); if(!isNaN(tv)) target=tv; }
     el("tgtInput").value=target;
     var hn=await store.get("hideNet"); if(hn!==null) hideNet=(hn==="1"); updateEye();
