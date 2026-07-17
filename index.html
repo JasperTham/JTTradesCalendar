@@ -287,9 +287,16 @@
   "use strict";
 
   var mem={};
+  var PREFIX="jttrades:";
   var store={
-    get:async function(k){ try{ if(window.storage){ var r=await window.storage.get(k); return r?r.value:null; } }catch(e){} return (k in mem)?mem[k]:null; },
-    set:async function(k,v){ try{ if(window.storage){ await window.storage.set(k,v); return; } }catch(e){} mem[k]=v; }
+    get:async function(k){
+      try{ var v=localStorage.getItem(PREFIX+k); if(v!==null) return v; }catch(e){}
+      return (k in mem)?mem[k]:null;
+    },
+    set:async function(k,v){
+      try{ localStorage.setItem(PREFIX+k,v); return; }catch(e){}
+      mem[k]=v;
+    }
   };
 
   var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
