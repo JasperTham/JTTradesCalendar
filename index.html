@@ -26,8 +26,8 @@
 
   /* Sidebar */
   .sidebar{
-    width:212px;flex:none;border-right:1px solid var(--border);
-    padding:22px 14px;display:flex;flex-direction:column;gap:24px;
+    width:240px;flex:none;border-right:1px solid var(--border);
+    padding:24px 16px;display:flex;flex-direction:column;gap:26px;
     position:sticky;top:0;height:100vh;
   }
   .brand{display:flex;align-items:center;gap:10px}
@@ -37,15 +37,15 @@
     color:var(--green);font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:-0.02em;
   }
   .brandname{font-size:15px;font-weight:650;letter-spacing:-0.01em}
-  nav.side{display:flex;flex-direction:column;gap:4px}
+  nav.side{display:flex;flex-direction:column;gap:6px}
   .navitem{
-    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-    padding:9px 11px;border-radius:9px;background:transparent;border:1px solid transparent;
-    color:var(--muted);font-size:13.5px;font-weight:500;cursor:pointer;transition:.14s;font-family:var(--sans);
+    display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    padding:12px 14px;border-radius:10px;background:transparent;border:1px solid transparent;
+    color:var(--muted);font-size:14.5px;font-weight:600;cursor:pointer;transition:.14s;font-family:var(--sans);letter-spacing:-0.01em;
   }
   .navitem:hover{background:var(--surface);color:var(--text)}
   .navitem.active{background:var(--green-dim);border-color:var(--green-line);color:var(--green)}
-  .navitem svg{width:16px;height:16px;flex:none}
+  .navitem svg{width:18px;height:18px;flex:none}
 
   .main{flex:1;min-width:0;padding:28px 26px 60px}
   .page{display:none;max-width:1040px;margin:0 auto}
@@ -71,6 +71,11 @@
   .eye{display:grid;place-items:center;width:22px;height:22px;padding:0;background:transparent;border:none;color:var(--dim);cursor:pointer;transition:.14s}
   .eye:hover{color:var(--text)}
   .eye:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
+  .rightbar{display:flex;align-items:center;gap:10px}
+  .datatools{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+  .minibtn{display:flex;align-items:center;gap:6px;height:26px;padding:0 10px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--dim);cursor:pointer;transition:.14s;font-family:var(--sans);font-size:11.5px;font-weight:500;letter-spacing:.01em}
+  .minibtn:hover{color:var(--text);border-color:var(--border-strong);background:var(--surface)}
+  .minibtn svg{width:13px;height:13px;flex:none}
 
   /* Streak counter */
   .counter{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 18px 13px 15px}
@@ -189,6 +194,10 @@
   .hint code{font-family:var(--mono);color:var(--text);background:#141414;padding:1px 5px;border-radius:4px;font-size:11.5px}
   textarea.data{width:100%;height:190px;resize:vertical;background:#141414;border:1px solid var(--border);border-radius:9px;padding:11px 12px;color:var(--text);font-family:var(--mono);font-size:12.5px;line-height:1.65;outline:none}
   textarea.data:focus{border-color:var(--green);background:#101010}
+  .filerow{margin-bottom:11px}
+  .filebtn{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;background:transparent;border:1px dashed var(--border-strong);border-radius:9px;color:var(--muted);font-size:12.5px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:.14s}
+  .filebtn:hover{color:var(--text);border-color:var(--green-line);background:var(--surface)}
+  .filebtn svg{flex:none}
 
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(10px);background:#242424;border:1px solid var(--border-strong);color:var(--text);padding:10px 16px;border-radius:10px;font-size:13px;font-family:var(--mono);opacity:0;transition:.25s;z-index:40;pointer-events:none;white-space:nowrap}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -241,7 +250,6 @@
             <button class="iconbtn" id="next" aria-label="Next month">&#8250;</button>
             <div class="month" id="monthLabel">—</div>
             <button class="today-btn" id="todayBtn">Today</button>
-            <button class="today-btn" id="importBtn">Import</button>
           </div>
           <div class="stats">
             <div class="stat"><span class="lbl">Net P&amp;L</span><span class="valrow"><span class="val hidden" id="netVal">*****</span><button class="eye" id="eyeBtn" aria-label="Show or hide Net P&amp;L"></button></span></div>
@@ -249,7 +257,12 @@
             <div class="stat"><span class="lbl">Trades</span><span class="val neu" id="tradesVal">0</span></div>
           </div>
         </div>
-        <div class="counter" id="counter">
+        <div class="rightbar">
+          <div class="datatools">
+            <button class="minibtn" id="importBtn" title="Import trades" aria-label="Import trades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10"/><path d="M8 9l4 4 4-4"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg><span>Import</span></button>
+            <button class="minibtn" id="exportBtn" title="Export backup" aria-label="Export backup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V5"/><path d="M8 9l4-4 4 4"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg><span>Export</span></button>
+          </div>
+          <div class="counter" id="counter">
           <div class="ring">
             <svg width="46" height="46" viewBox="0 0 46 46">
               <circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
@@ -266,6 +279,7 @@
             </div>
           </div>
         </div>
+      </div>
       </div>
       <div class="dow"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
       <div class="grid" id="grid"></div>
@@ -330,7 +344,11 @@
 <div class="backdrop" id="dataBackdrop">
   <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="dTitle">
     <h3 id="dTitle">Import / export trades</h3>
-    <p class="hint">One trade per line: <code>date, P&amp;L, trades, strategy</code><br>e.g. <code>2026-07-14, 746.50, 1, y</code> — strategy is <code>y</code> or <code>n</code> (defaults to y). Same-date days are overwritten. This box shows your current trades — copy it to back up, or edit / paste and Import.</p>
+    <p class="hint">Choose a CSV file (from Export) or paste rows below — one per line: <code>date, P&amp;L, trades, strategy</code><br>e.g. <code>2026-07-14, 746.50, 1, y</code> — strategy is <code>y</code> or <code>n</code> (defaults to y). Same-date days are overwritten.</p>
+    <div class="filerow">
+      <button class="filebtn" id="dataFileBtn" type="button"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Choose CSV file…</button>
+      <input type="file" id="dataFile" accept=".csv,text/csv,text/plain" hidden>
+    </div>
     <textarea class="data" id="dataText" spellcheck="false"></textarea>
     <div class="actions"><button class="btn clear" id="dClose">Close</button><button class="btn save" id="dImport">Import</button></div>
   </div>
@@ -657,6 +675,16 @@
     setTimeout(function(){ el("dataText").focus(); },30);
   }
   function closeData(){ el("dataBackdrop").classList.remove("open"); }
+  function exportData(){
+    var keys=Object.keys(entries).sort();
+    var lines=keys.map(function(k){ var e=entries[k]; return k+", "+e.amount+", "+(e.trades||0)+", "+(e.strategy===false?"n":"y"); });
+    var blob=new Blob([lines.join("\n")],{type:"text/csv"});
+    var url=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=url; a.download="jt-trades-"+todayKey()+".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); },1500);
+    toast("Exported "+keys.length+" day"+(keys.length===1?"":"s"), "up");
+  }
   async function doImport(){
     var lines=el("dataText").value.split(/\r?\n/), count=0;
     for(var i=0;i<lines.length;i++){
@@ -690,6 +718,15 @@
   el("next").onclick=function(){ view.setMonth(view.getMonth()+1); render(); };
   el("todayBtn").onclick=function(){ view=new Date(); view.setDate(1); render(); };
   el("importBtn").onclick=openData;
+  el("exportBtn").onclick=exportData;
+  el("dataFileBtn").onclick=function(){ el("dataFile").click(); };
+  el("dataFile").addEventListener("change",function(ev){
+    var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+    var reader=new FileReader();
+    reader.onload=function(){ el("dataText").value=String(reader.result||"").trim(); el("dataText").focus(); };
+    reader.readAsText(f);
+    ev.target.value="";
+  });
   el("dClose").onclick=closeData;
   el("dImport").onclick=doImport;
   el("dataBackdrop").addEventListener("click",function(ev){ if(ev.target===el("dataBackdrop")) closeData(); });
