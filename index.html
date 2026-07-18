@@ -283,12 +283,24 @@
     }
     .main{padding:16px 14px 108px}
     .cards{grid-template-columns:repeat(2,1fr)}
-    .cell{min-height:74px;padding:6px 7px;border-radius:9px}
-    .cell .amt{font-size:13px}
+    .cell{min-height:66px;padding:5px 5px 6px;border-radius:9px}
+    .cell .date{font-size:11px}
+    .cell .body{gap:1px;min-width:0}
+    .cell .amt{font-size:11px;letter-spacing:-0.04em;white-space:nowrap;overflow:hidden;text-overflow:clip}
+    .cell .trd{font-size:9.5px;white-space:nowrap}
+    .dow span{font-size:9.5px;padding-left:1px;letter-spacing:.02em}
     .month{font-size:21px;min-width:0}
     .stats{gap:16px}
-    .grid,.dow{gap:6px}
+    .grid,.dow{gap:5px}
     .counter{padding:10px 14px 10px 12px}
+  }
+  @media(max-width:400px){
+    .main{padding:14px 9px 108px}
+    .grid,.dow{gap:4px}
+    .cell{padding:4px 4px 5px;min-height:60px}
+    .cell .amt{font-size:9.8px}
+    .cell .date{font-size:10px}
+    .cell .trd{font-size:9px}
   }
   @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -472,6 +484,16 @@
   }
   function fmtBal(n){ var neg=n<0; return (neg?"-$":"$")+Math.round(Math.abs(n)).toLocaleString("en-US"); }
 
+  function isNarrow(){ return window.innerWidth<=560; }
+  function fmtCell(n){
+    if(!isNarrow()) return fmtMoney(n);
+    var sign=n>0?"+":(n<0?"-":""), abs=Math.abs(n);
+    if(abs>=10000) return sign+"$"+Math.round(abs/1000)+"k";
+    if(abs>=1000) return sign+"$"+(abs/1000).toFixed(1).replace(/\.0$/,"")+"k";
+    return sign+"$"+Math.round(abs);
+  }
+  function fmtTrades(t){ return isNarrow() ? ("\u00D7"+t) : (t+(t===1?" trade":" trades")); }
+
   function computeStreak(){
     var keys=Object.keys(entries).sort(), s=0, broke=false;
     for(var i=0;i<keys.length;i++){ var e=entries[keys[i]]; if(e.strategy===false){s=0;broke=true;} else {s+=1;broke=false;} }
@@ -502,7 +524,7 @@
       if(cls) cell.classList.add(cls);
       if(k===tk) cell.classList.add("today");
       var html='<span class="date">'+d+'</span>';
-      if(e){ var amtClass=e.amount!==0?"amt":"amt zero"; html+='<div class="body"><span class="'+amtClass+'">'+fmtMoney(e.amount)+'</span>'; if((e.trades||0)>0) html+='<span class="trd">'+e.trades+(e.trades===1?" trade":" trades")+'</span>'; html+='</div>'; }
+      if(e){ var amtClass=e.amount!==0?"amt":"amt zero"; html+='<div class="body"><span class="'+amtClass+'">'+fmtCell(e.amount)+'</span>'; if((e.trades||0)>0) html+='<span class="trd">'+fmtTrades(e.trades)+'</span>'; html+='</div>'; }
       cell.innerHTML=html;
       if(animate){ cell.classList.add("anim"); cell.style.animationDelay=(Math.min(d,42)*0.012).toFixed(3)+"s"; }
       cell.setAttribute("aria-label", MONTHS[m]+" "+d+(e?", "+fmtMoney(e.amount)+", "+(e.trades||0)+" trades":", no entry"));
@@ -850,6 +872,15 @@
   el("poAdd").onclick=addPayout;
   el("poAmount").addEventListener("keydown",function(ev){ if(ev.key==="Enter") addPayout(); });
   el("payoutList").addEventListener("click",function(ev){ var b=ev.target.closest(".pdel"); if(b) deletePayout(b.dataset.id); });
+
+  var rzTimer=null, wasNarrow=isNarrow();
+  window.addEventListener("resize",function(){
+    clearTimeout(rzTimer);
+    rzTimer=setTimeout(function(){
+      var now=isNarrow();
+      if(now!==wasNarrow){ wasNarrow=now; render(); }
+    },160);
+  });
 
   /* ---------- Init ---------- */
   (async function(){
