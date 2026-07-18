@@ -170,6 +170,12 @@
   .setting .inp:focus-within{border-color:var(--green)}
   .setting .inp .cur{color:var(--muted);font-family:var(--mono);font-size:14px;margin-right:1px}
   .setting input{width:96px;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:14px;font-weight:600}
+  .seg{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:3px;gap:3px}
+  .segbtn{padding:6px 11px;border-radius:7px;background:transparent;border:none;color:var(--dim);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:.14s;white-space:nowrap}
+  .segbtn:hover{color:var(--text)}
+  .segbtn.active{background:var(--surface-2);color:var(--text)}
+  .ddwarn{display:none;background:var(--red-dim);border:1px solid var(--red-line);color:var(--red);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;line-height:1.5}
+  .ddwarn.show{display:block}
 
   .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 17px}
@@ -381,8 +387,17 @@
       <div class="pagehead">Equity Curve</div>
       <div class="eq-settings">
         <div class="setting"><label for="startBal">Starting balance</label><div class="inp"><span class="cur">$</span><input id="startBal" type="number" step="any" inputmode="decimal"></div></div>
-        <div class="setting"><label for="maxLoss">Max loss limit</label><div class="inp"><span class="cur">$</span><input id="maxLoss" type="number" step="any" inputmode="decimal"></div></div>
+        <div class="setting" id="setMaxLoss"><label for="maxLoss">Max loss limit</label><div class="inp"><span class="cur">$</span><input id="maxLoss" type="number" step="any" inputmode="decimal"></div></div>
+        <div class="setting" id="setDdAmt"><label for="ddAmt">Drawdown amount</label><div class="inp"><span class="cur">$</span><input id="ddAmt" type="number" step="any" inputmode="decimal"></div></div>
+        <div class="setting" id="setLockAt"><label for="lockAt">Trail locks above</label><div class="inp"><span class="cur">$</span><input id="lockAt" type="number" step="any" inputmode="decimal"></div></div>
+        <div class="setting"><label>Drawdown type</label>
+          <div class="seg" id="ddSeg">
+            <button class="segbtn active" data-dd="static">Static</button>
+            <button class="segbtn" data-dd="trailing">EOD Trailing</button>
+          </div>
+        </div>
       </div>
+      <div class="ddwarn" id="ddWarn"></div>
       <div class="cards">
         <div class="card"><div class="clbl">Account Balance</div><div class="cval neu" id="cAcct">$0</div></div>
         <div class="card"><div class="clbl">Minimum Balance</div><div class="cval neu" id="cMin">$0</div><div class="csub" id="cBuffer">—</div></div>
@@ -465,7 +480,11 @@
   var view=new Date(); view.setDate(1);
   var selectedKey=null, pendingAmount=0, pendingTrades=0;
   var hideNet=true;
-  var startBalance=25000, maxLoss=25100;
+  var startBalance=25000, maxLoss=23500;
+  var ddMode="static";
+  var ddAmount=1000, lockAt=26100;
+  function lockFloor(){ return lockAt-ddAmount; }
+  function floorAt(peak){ return Math.min(peak-ddAmount, lockFloor()); }
   var activePage="consistency";
 
   var EYE_OPEN='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -572,16 +591,36 @@
     var keys=Object.keys(entries).sort();
     var totalPnl=0, largestWin=0;
     for(var i=0;i<keys.length;i++){ var a=entries[keys[i]].amount||0; totalPnl+=a; if(a>largestWin) largestWin=a; }
-    var acct=startBalance+totalPnl-payoutTotal(), buffer=acct-maxLoss;
+    var acct=startBalance+totalPnl-payoutTotal();
+    var curFloor=maxLoss, breached=false;
+    if(ddMode==="trailing" && ddAmount>0){
+      var run=startBalance, pk=startBalance;
+      var uniq={};
+      Object.keys(entries).forEach(function(d){uniq[d]=1;});
+      payouts.forEach(function(p){uniq[p.date]=1;});
+      Object.keys(uniq).sort().forEach(function(d){
+        var pn=entries[d]?(entries[d].amount||0):0, po=0;
+        payouts.forEach(function(p){ if(p.date===d) po+=p.amount||0; });
+        run+=pn-po;
+        if(run>pk) pk=run;
+        if(run<=floorAt(pk)) breached=true;
+      });
+      curFloor=floorAt(pk);
+    } else if(acct<=maxLoss) breached=true;
+    var buffer=acct-curFloor;
     var tradingDays=keys.length;
     var cons = (totalPnl>0 && largestWin>0) ? (largestWin/totalPnl*100) : null;
 
     // cards
     var acctEl=el("cAcct"); acctEl.textContent=fmtBal(acct); acctEl.className="cval "+(totalPnl>0?"pos":(totalPnl<0?"neg":"neu"));
-    el("cMin").textContent=fmtBal(maxLoss);
+    el("cMin").textContent=fmtBal(curFloor);
     var bEl=el("cBuffer");
-    bEl.textContent=(buffer>0?"+":"")+fmtBal(buffer)+" buffer";
-    bEl.className="csub "+(buffer>0?"pos":"neg");
+    if(breached){ bEl.textContent="BREACHED"; bEl.className="csub neg"; }
+    else {
+      var locked=(ddMode==="trailing" && ddAmount>0 && curFloor>=lockFloor());
+      bEl.textContent=(buffer>0?"+":"")+fmtBal(buffer)+" buffer"+(locked?" · locked":"");
+      bEl.className="csub "+(buffer>0?"pos":"neg");
+    }
     var pnlEl=el("cPnl"); pnlEl.textContent=fmtMoney(totalPnl); pnlEl.className="cval "+(totalPnl>0?"pos":(totalPnl<0?"neg":"neu"));
     el("cDays").textContent=tradingDays;
     var consEl=el("cCons");
@@ -589,6 +628,12 @@
     else { consEl.textContent=cons.toFixed(2)+"%"; consEl.className="cval "+(cons<40?"pos":"neg"); }
 
     // chart
+    var w=el("ddWarn");
+    if(ddMode==="trailing" && !(ddAmount>0)){
+      w.textContent="Enter a drawdown amount above $0 for the trail to work — that's the distance the limit sits below your highest closing balance.";
+      w.classList.add("show");
+    } else w.classList.remove("show");
+
     var wrap=el("chartwrap");
     var pnlByDate={}, payByDate={}, union={};
     for(var a in entries){ pnlByDate[a]=(pnlByDate[a]||0)+(entries[a].amount||0); union[a]=1; }
@@ -601,10 +646,22 @@
     var running=startBalance, series=[];
     for(var j=0;j<allDates.length;j++){ var dd=allDates[j]; running+=(pnlByDate[dd]||0)-(payByDate[dd]||0); series.push({t:parseKey(dd).getTime(), v:running, k:dd}); }
 
+    // floor per point: static = flat limit; EOD trailing = highest closing balance minus
+    // the drawdown amount, locking once the balance closes above the lock threshold
+    var peak=startBalance;
+    for(var f=0;f<series.length;f++){
+      if(ddMode==="trailing" && ddAmount>0){
+        if(series[f].v>peak) peak=series[f].v;
+        series[f].floor=floorAt(peak);
+      } else series[f].floor=maxLoss;
+    }
+
     var W=1000, H=440, PAD_L=14, PAD_R=82, PAD_T=22, PAD_B=46;
     var plotW=W-PAD_L-PAD_R, plotH=H-PAD_T-PAD_B, bottomY=PAD_T+plotH;
 
-    var vals=series.map(function(s){return s.v;}); vals.push(maxLoss);
+    var vals=series.map(function(s){return s.v;});
+    vals.push(ddMode==="trailing"&&ddAmount>0?lockFloor():maxLoss);
+    series.forEach(function(s){ vals.push(s.floor); });
     var dMin=Math.min.apply(null,vals), dMax=Math.max.apply(null,vals), r=(dMax-dMin)||1;
     var nt=niceTicks(dMin-r*0.10, dMax+r*0.10), yLo=nt.lo, yHi=nt.hi, ySpan=(yHi-yLo)||1;
     function Y(v){ return PAD_T + (1-(v-yLo)/ySpan)*plotH; }
@@ -632,8 +689,18 @@
     svg+='<path class="eq-area" d="'+area+'" fill="url(#fill)"/>';
     svg+='<path class="eq-line" pathLength="1" d="'+line+'" fill="none" stroke="#4cc98a" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>';
     // floor (minimum) dashed
-    var fy=Y(maxLoss);
-    svg+='<line class="eq-floor" x1="'+PAD_L+'" y1="'+fy.toFixed(1)+'" x2="'+(PAD_L+plotW)+'" y2="'+fy.toFixed(1)+'" stroke="#f0616b" stroke-width="2" stroke-dasharray="7 6"/>';
+    var fy=Y(series[series.length-1].floor);
+    if(ddMode==="trailing" && ddAmount>0 && series.length>1){
+      var fd="M"+PAD_L+","+Y(series[0].floor).toFixed(1);
+      for(var q=1;q<series.length;q++){
+        fd+=" L"+pts[q].x.toFixed(1)+","+Y(series[q-1].floor).toFixed(1);
+        fd+=" L"+pts[q].x.toFixed(1)+","+Y(series[q].floor).toFixed(1);
+      }
+      fd+=" L"+(PAD_L+plotW)+","+Y(series[series.length-1].floor).toFixed(1);
+      svg+='<path class="eq-floor" d="'+fd+'" fill="none" stroke="#f0616b" stroke-width="2" stroke-dasharray="7 6" stroke-linejoin="round"/>';
+    } else {
+      svg+='<line class="eq-floor" x1="'+PAD_L+'" y1="'+fy.toFixed(1)+'" x2="'+(PAD_L+plotW)+'" y2="'+fy.toFixed(1)+'" stroke="#f0616b" stroke-width="2" stroke-dasharray="7 6"/>';
+    }
     // dots + x labels
     var step=Math.ceil(series.length/9);
     if(series.length>1){
@@ -867,6 +934,22 @@
   el("tgtInput").addEventListener("change",async function(){ var v=parseInt(this.value,10); target=(isNaN(v)||v<1)?1:Math.min(v,99); this.value=target; await store.set("target",String(target)); render(); });
   el("startBal").addEventListener("change",async function(){ var v=parseFloat(this.value); if(isNaN(v))v=0; startBalance=v; this.value=v; await store.set("startBalance",String(v)); renderEquity(); });
   el("maxLoss").addEventListener("change",async function(){ var v=parseFloat(this.value); if(isNaN(v))v=0; maxLoss=v; this.value=v; await store.set("maxLoss",String(v)); renderEquity(); });
+  function applyDdMode(){
+    var trailing=(ddMode==="trailing");
+    el("setMaxLoss").style.display=trailing?"none":"flex";
+    el("setDdAmt").style.display=trailing?"flex":"none";
+    el("setLockAt").style.display=trailing?"flex":"none";
+    document.querySelectorAll("#ddSeg .segbtn").forEach(function(x){ x.classList.toggle("active", x.dataset.dd===ddMode); });
+  }
+  el("ddSeg").addEventListener("click",async function(ev){
+    var b=ev.target.closest(".segbtn"); if(!b) return;
+    ddMode=b.dataset.dd;
+    applyDdMode();
+    await store.set("ddMode", ddMode);
+    renderEquity();
+  });
+  el("ddAmt").addEventListener("change",async function(){ var v=parseFloat(this.value); if(isNaN(v)||v<0)v=0; ddAmount=v; this.value=v; await store.set("ddAmount",String(v)); renderEquity(); });
+  el("lockAt").addEventListener("change",async function(){ var v=parseFloat(this.value); if(isNaN(v))v=0; lockAt=v; this.value=v; await store.set("lockAt",String(v)); renderEquity(); });
   el("addPayoutBtn").onclick=function(){ togglePayoutForm(!el("payoutForm").classList.contains("open")); };
   el("poCancel").onclick=function(){ togglePayoutForm(false); };
   el("poAdd").onclick=addPayout;
@@ -891,6 +974,12 @@
     var hn=await store.get("hideNet"); if(hn!==null) hideNet=(hn==="1"); updateEye();
     var sb=await store.get("startBalance"); if(sb!==null){ var sv=parseFloat(sb); if(!isNaN(sv)) startBalance=sv; }
     var ml=await store.get("maxLoss"); if(ml!==null){ var mv=parseFloat(ml); if(!isNaN(mv)) maxLoss=mv; }
+    var dm=await store.get("ddMode");
+    if(dm==="trailing"||dm==="static") ddMode=dm;
+    var da=await store.get("ddAmount"); if(da!==null){ var dav=parseFloat(da); if(!isNaN(dav)) ddAmount=dav; }
+    var la=await store.get("lockAt"); if(la!==null){ var lav=parseFloat(la); if(!isNaN(lav)) lockAt=lav; }
+    el("ddAmt").value=ddAmount; el("lockAt").value=lockAt;
+    applyDdMode();
     el("startBal").value=startBalance; el("maxLoss").value=maxLoss;
     render(true);
     var lo=el("loader");
